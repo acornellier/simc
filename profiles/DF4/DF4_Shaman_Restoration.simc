@@ -31,7 +31,6 @@ actions+=/wind_shear,if=target.debuff.casting.react
 actions+=/use_items
 actions+=/potion
 
-actions+=/stormkeeper
 actions+=/run_action_list,name=aoe,if=active_enemies>2
 actions+=/run_action_list,name=st
 
@@ -39,6 +38,7 @@ actions.aoe+=/stormkeeper
 actions.aoe+=/healing_rain
 actions.aoe+=/chain_lightning
 
+actions.st+=/stormkeeper
 actions.st+=/flame_shock,if=refreshable
 actions.st+=/lava_burst
 actions.st+=/healing_rain,if=talent.acid_rain.enabled

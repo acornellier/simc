@@ -700,7 +700,6 @@ public:
     player_talent_t primordial_wave;
     player_talent_t ascendance;
     player_talent_t splintered_elements;
-    player_talent_t stormkeeper;
     player_talent_t master_of_the_elements;
     player_talent_t lava_surge;
     player_talent_t echo_of_the_elements;
@@ -773,6 +772,7 @@ public:
     player_talent_t swelling_maelstrom;
     player_talent_t call_of_fire;
     // Row 6
+    player_talent_t stormkeeper;
     player_talent_t electrified_shocks;
     player_talent_t flux_melting;
     player_talent_t aftershock;
@@ -812,6 +812,7 @@ public:
     player_talent_t healing_stream_totem_2;
     // Row 3
     player_talent_t healing_rain;
+    player_talent_t stormkeeper_resto;
     player_talent_t resurgence;
     player_talent_t tidal_waves;
     // Row 3
@@ -966,6 +967,7 @@ public:
   void summon_storm_elemental( timespan_t duration );
   timespan_t last_t30_proc;
   bool t30_proc_possible;
+  bool stormkeeper_talented() const;
 
   mw_proc_state set_mw_proc_state( action_t* action, mw_proc_state state )
   {
@@ -5915,8 +5917,7 @@ struct lightning_bolt_overload_t : public elemental_overload_spell_t
 
     affected_by_master_of_the_elements = true;
     // Stormkeeper affected by flagging is applied to the Energize spell ...
-    affected_by_stormkeeper_damage = ( p->talent.stormkeeper.ok() || p->talent.stormkeeper2.ok() ) &&
-      p->specialization() == SHAMAN_ELEMENTAL;
+    affected_by_stormkeeper_damage = ( p->stormkeeper_talented() ) && p->specialization() == SHAMAN_ELEMENTAL;
   }
 
   void execute() override
@@ -7743,7 +7744,7 @@ struct ascendance_dre_t : public ascendance_t
 struct stormkeeper_t : public shaman_spell_t
 {
   stormkeeper_t( shaman_t* player, util::string_view options_str ) :
-    shaman_spell_t( "stormkeeper", player, player->find_spell( 191634 ) )
+    shaman_spell_t( "stormkeeper", player, player->find_spell( player->specialization() == SHAMAN_ELEMENTAL ? 191634 : 383009 ) )
   {
     parse_options( options_str );
     may_crit = harmful = false;
@@ -7759,7 +7760,7 @@ struct stormkeeper_t : public shaman_spell_t
 
   bool ready() override
   {
-    if ( !p()->talent.stormkeeper.ok() && !p()->talent.stormkeeper2.ok() )
+    if ( !p()->stormkeeper_talented() )
     {
       return false;
     }
@@ -9682,9 +9683,6 @@ void shaman_t::init_spells()
   talent.lava_surge              = _ST( "Lava Surge" );
   talent.echo_of_the_elements    = _ST( "Echo of the Elements" );
   talent.deeply_rooted_elements  = _ST( "Deeply Rooted Elements" );
-
-  talent.stormkeeper = find_talent_spell( talent_tree::SPECIALIZATION, 392714  );
-//  talent.stormkeeper = find_talent_spell( talent_tree::SPECIALIZATION, specialization() == SHAMAN_RESTORATION  ? 383009 : 392714  );
   
   // Enhancement
   // Row 1
@@ -9713,6 +9711,7 @@ void shaman_t::init_spells()
   talent.crashing_storms = _ST( "Crashing Storms" );
   talent.tempest_strikes = _ST( "Tempest strikes" );
   // Row 6
+  talent.stormkeeper = find_talent_spell( talent_tree::SPECIALIZATION, 392714  );
   talent.storms_wrath = _ST( "Storm's Wrath" );
   talent.crash_lightning = _ST( "Crash Lightning" );
   talent.stormflurry = _ST( "Stormflurry" );
@@ -9787,6 +9786,7 @@ void shaman_t::init_spells()
   // Restoration
   talent.acid_rain = _ST( "Acid Rain" );
   talent.healing_rain = _ST( "Healing Rain" );
+  talent.stormkeeper_resto = find_talent_spell( talent_tree::SPECIALIZATION, 383009 );
 
   //
   // Misc spells
@@ -9992,6 +9992,11 @@ void shaman_t::summon_storm_elemental( timespan_t duration )
       pet.guardian_storm_elemental->expiration->reschedule( new_duration );
     }
   }
+}
+
+bool shaman_t::stormkeeper_talented() const
+{
+  return talent.stormkeeper.ok() || talent.stormkeeper2.ok() || talent.stormkeeper_resto.ok();
 }
 
 // ==========================================================================
@@ -10527,7 +10532,7 @@ void shaman_t::trigger_flash_of_lightning()
     return;
   }
 
-  if ( !talent.stormkeeper.enabled() && !talent.stormkeeper2.enabled() &&
+  if ( !stormkeeper_talented() &&
        !talent.storm_elemental.enabled() && !talent.totemic_recall.enabled() )
   {
     return;
@@ -10537,7 +10542,7 @@ void shaman_t::trigger_flash_of_lightning()
   {
     cooldown.storm_elemental->adjust( talent.flash_of_lightning.spell()->effectN( 1 ).time_value(), false );
   }
-  if ( talent.stormkeeper.enabled() || talent.stormkeeper2.enabled() )
+  if ( stormkeeper_talented() )
   {
     cooldown.stormkeeper->adjust( talent.flash_of_lightning.spell()->effectN( 1 ).time_value(), false );
   }
@@ -10704,7 +10709,7 @@ void shaman_t::create_buffs()
     ->set_pct_buff_type( STAT_PCT_BUFF_MASTERY )
     ->set_refresh_behavior( buff_refresh_behavior::PANDEMIC );
 
-  buff.stormkeeper = make_buff( this, "stormkeeper", find_spell( 191634 ) )
+  buff.stormkeeper = make_buff( this, "stormkeeper", find_spell( specialization() == SHAMAN_ELEMENTAL ? 191634 : 383009 ) )
     ->set_cooldown( timespan_t::zero() )  // Handled by the action
     ->set_default_value_from_effect( 2 ); // Damage bonus as default value
 
