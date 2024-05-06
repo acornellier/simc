@@ -2,16 +2,19 @@
 html=/Users/alex/git/simc/out/results.html
 output=/Users/alex/git/simc/out/results.txt
 
-shaman="DF4_Shaman_Restoration"
-source=default
-spec=restoration
+shaman="Ortotem"
 level=70
-race=tauren
-role=spell
-position=back
-talents=BgQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIpJJSSKJlkik0E0gkSQQJJkWog0kASiSSkIBC
-dragonflight.ominous_chromatic_essence_dragonflight=azure
-dragonflight.ominous_chromatic_essence_allies=emerald/bronze/obsidian/ruby
+race=goblin
+region=us
+server=zuljin
+role=attack
+professions=alchemy=50/engineering=26
+spec=restoration
+
+# mote + lava surge
+#talents=BgQA7dFHISiZRvWu4x4NMgmZAAAAAAAAAAAAAAIpJRSSKJlkik0E0gkSQQJJkGKINJQIKJJRSgA
+# all 3
+talents=BgQA7dFHISiZRvWu4x4NMgmZAAAAAAAAAAAAAAIpJJSSKJlkik0E0gkSQQJJkGKINJQIKJJRSgA
 
 # Default consumables
 potion=elemental_potion_of_ultimate_power_3
@@ -32,11 +35,8 @@ actions+=/use_items
 actions+=/potion
 
 actions+=/run_action_list,name=aoe,if=active_enemies>2
+actions+=/run_action_list,name=two_t,if=active_enemies=2
 actions+=/run_action_list,name=st
-
-actions.aoe+=/stormkeeper
-actions.aoe+=/healing_rain
-actions.aoe+=/chain_lightning
 
 actions.st+=/stormkeeper
 actions.st+=/flame_shock,if=refreshable
@@ -46,20 +46,71 @@ actions.st+=/lightning_bolt
 actions.st+=/flame_shock,moving=1
 actions.st+=/frost_shock,moving=1
 
-legs=,id=195522,bonus_id=6652/10872/7979/10316/10884/1576/8767,enchant_id=6541,context=82
-main_hand=,id=193803,bonus_id=9639/6652/9147/10333/3198/8767,enchant_id=6643,context=16
-neck=,id=193676,bonus_id=10330/9639/6652/9144/3188/8767/9477/8782,gem_id=192925/192925/192982,context=33
-shoulder=,id=217240,bonus_id=6652/7981/10884/8095/10869/10337/1517/8767,context=85
-trinket1=,id=212685,bonus_id=9639/6652/9144/10334/3201/8767,context=16
-trinket2=,id=203729,bonus_id=41/7980/10884/10334/1576/8767,context=84
-waist=,id=207946,bonus_id=10330/9635/6652/10533/10870/1602/8767,enchant_id=6904,context=54
-wrist=,id=198332,bonus_id=8836/8840/8902/9405/10359/8949/8863/10249/10532,gem_id=201409,enchant_id=6580,context=13,crafted_stats=32
+actions.two_t+=/stormkeeper
+actions.two_t+=/flame_shock,if=refreshable
+actions.two_t+=/lava_burst,if=!buff.master_of_the_elements.up
+actions.two_t+=/healing_rain
+actions.two_t+=/chain_lightning
 
+actions.aoe+=/stormkeeper
+actions.aoe+=/healing_rain
+actions.aoe+=/chain_lightning
+
+### TEMP ###
+
+# Greatwolf Outcast's Jaws (522)
+head=,id=217238,bonus_id=6652/10532/7980/10867/10884/10334/1514/8767
+# Ukhel Ancestry Beads (509)
+neck=,id=193676,gem_id=192925/192925/192982,bonus_id=10330/9639/6652/9144/3188/8767/9477/8782
+# Greatwolf Outcast's Companions (525)
+shoulder=,id=217240,bonus_id=6652/7981/10884/8095/10869/10337/1517/8767
+# Acid-Proof Webbing (512)
+back=,id=195511,enchant_id=6598,bonus_id=41/10873/7980/10884/10331/1595/8767
+# Greatwolf Outcast's Harness (522)
+chest=,id=217236,enchant_id=6625,bonus_id=6652/7980/10884/8094/10865/10334/1514/8767
+# Complicated Cuffs  (525)
+wrist=,id=198332,enchant_id=6580,gem_id=201409,bonus_id=8836/8840/8902/9405/10359/8949/8863/10249/10533,crafted_stats=32,crafting_quality=5
+# Greatwolf Outcast's Grips (499)
+hands=,id=217237,bonus_id=6652/7979/10315/10866/10884/1491/8767
+# Reality-Warping Waistband (509)
+waist=,id=207946,enchant_id=6904,bonus_id=10330/9635/6652/10533/10870/1602/8767
+# Tassets of the Tarasek Legion (502)
+legs=,id=195522,enchant_id=6541,bonus_id=6652/10872/7979/10316/10884/1576/8767
+# Boots of Explosive Growth (515)
+feet=,id=193715,enchant_id=6613,bonus_id=9639/41/10870/9144/10332/3194/8767
+# Thunderous Downburst Ring (515)
+finger1=,id=193696,enchant_id=6568,bonus_id=9639/6652/10532/9144/10332/3194/8767
+# Seal of Diurna's Chosen (515)
+finger2=,id=195480,enchant_id=6568,bonus_id=10414/1592/8767/10532
+# Tome of Unstable Power (522)
+trinket1=,id=212685,bonus_id=9639/6652/9144/10334/3201/8767
+# Ominous Chromatic Essence (522)
+trinket2=,id=203729,bonus_id=41/7980/10884/10334/1576/8767
+# Infinite Dragonspire (522)
+main_hand=,id=193803,enchant_id=6643,bonus_id=9639/6652/9147/10334/3201/8767
+
+# Consumables
+potion=disabled
+food=disabled
+flask=disabled
+augmentation=disabled
+
+# Expansion Options
+dragonflight.balefire_branch_loss_rng_type=constant
+dragonflight.ominous_chromatic_essence_dragonflight=emerald
+dragonflight.ominous_chromatic_essence_allies=
+dragonflight.blue_silken_lining_uptime=0.4
+dragonflight.corrupting_rage_uptime=0.8
+dragonflight.ruby_whelp_shell_training=
+dragonflight.primal_ritual_shell_blessing=wind
+dragonflight.whispering_incarnate_icon_roles=dps/heal/tank
+temporary_enchant=disabled
 
 # Simulation Options
-iterations=1000
-desired_targets=2
+iterations=10000
+desired_targets=3
 max_time=300
+optimal_raid=0
 override.bloodlust=0
 override.arcane_intellect=0
 override.power_word_fortitude=0
