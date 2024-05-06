@@ -18,7 +18,7 @@ potion=elemental_potion_of_ultimate_power_3
 flask=phial_of_tepid_versatility_3
 food=sizzling_seafood_medley
 augmentation=draconic
-temporary_enchant=main_hand:howling_rune_3
+temporary_enchant=main_hand:buzzing_rune_3
 
 actions.precombat=flask
 actions.precombat+=/food
@@ -32,20 +32,20 @@ actions+=/use_items
 actions+=/potion
 
 actions+=/stormkeeper
-actions+=/healing_rain,if=talent.acid_rain.enabled
-actions+=/chain_lightning,if=active_enemies>1
-actions+=/flame_shock,if=refreshable
-actions+=/lava_burst
-actions+=/lightning_bolt
-actions+=/frost_shock
+actions+=/run_action_list,name=aoe,if=active_enemies>2
+actions+=/run_action_list,name=st
 
-back=,id=195511,bonus_id=41/10873/7980/10884/10331/1595/8767,enchant_id=6598,context=84
-chest=,id=217236,bonus_id=6652/7980/10884/8094/10865/10334/1514/8767,enchant_id=6625,context=84
-feet=,id=193715,bonus_id=9639/41/10870/9144/10332/3194/8767,enchant_id=6613,context=33
-finger1=,id=193633,bonus_id=10330/9639/6652/10532/9144/3188/8767,enchant_id=6550,context=16
-finger2=,id=195480,bonus_id=10414/1592/8767/10532,enchant_id=6550,context=89
-hands=,id=217237,bonus_id=6652/7979/10315/10866/10884/1491/8767,context=82
-head=,id=217238,bonus_id=6652/10532/7980/10867/10884/10332/1507/8767,context=84
+actions.aoe+=/stormkeeper
+actions.aoe+=/healing_rain
+actions.aoe+=/chain_lightning
+
+actions.st+=/flame_shock,if=refreshable
+actions.st+=/lava_burst
+actions.st+=/healing_rain,if=talent.acid_rain.enabled
+actions.st+=/lightning_bolt
+actions.st+=/flame_shock,moving=1
+actions.st+=/frost_shock,moving=1
+
 legs=,id=195522,bonus_id=6652/10872/7979/10316/10884/1576/8767,enchant_id=6541,context=82
 main_hand=,id=193803,bonus_id=9639/6652/9147/10333/3198/8767,enchant_id=6643,context=16
 neck=,id=193676,bonus_id=10330/9639/6652/9144/3188/8767/9477/8782,gem_id=192925/192925/192982,context=33
