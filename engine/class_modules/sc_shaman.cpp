@@ -700,6 +700,11 @@ public:
     player_talent_t primordial_wave;
     player_talent_t ascendance;
     player_talent_t splintered_elements;
+    player_talent_t stormkeeper;
+    player_talent_t master_of_the_elements;
+    player_talent_t lava_surge;
+    player_talent_t echo_of_the_elements;
+    player_talent_t deeply_rooted_elements;
 
     // Enhancement
     // Row 1
@@ -762,15 +767,12 @@ public:
     // Row 4
     player_talent_t call_of_thunder;
     player_talent_t flow_of_power;
-    player_talent_t lava_surge;
     // Row 5
     player_talent_t unrelenting_calamity;
     player_talent_t icefury;
     player_talent_t swelling_maelstrom;
-    player_talent_t echo_of_the_elements;
     player_talent_t call_of_fire;
     // Row 6
-    player_talent_t stormkeeper;
     player_talent_t electrified_shocks;
     player_talent_t flux_melting;
     player_talent_t aftershock;
@@ -780,10 +782,8 @@ public:
     player_talent_t flash_of_lightning;
     player_talent_t eye_of_the_storm;
     player_talent_t power_of_the_maelstrom;
-    player_talent_t master_of_the_elements;
     player_talent_t improved_flametongue_weapon;
     // Row 8
-    player_talent_t deeply_rooted_elements;
     player_talent_t liquid_magma_totem;
     player_talent_t primal_elementalist;
     // Row 9
@@ -802,6 +802,61 @@ public:
     player_talent_t further_beyond;
     player_talent_t skybreakers_fiery_demise;
     player_talent_t windspeakers_lava_resurgence;
+    
+    // Restoration
+    // Row 1
+    player_talent_t riptide;
+    // Row 2
+    player_talent_t deluge;
+    player_talent_t healing_wave;
+    player_talent_t healing_stream_totem_2;
+    // Row 3
+    player_talent_t healing_rain;
+    player_talent_t resurgence;
+    player_talent_t tidal_waves;
+    // Row 3
+    player_talent_t acid_rain;
+    player_talent_t overflowing_shores;
+    player_talent_t ancestral_vigor;
+    player_talent_t flash_flood;
+    player_talent_t water_totem_mastery;
+    // Row 4
+    player_talent_t ancestral_reach;
+    player_talent_t flow_of_the_tides;
+    player_talent_t spirit_link_totem;
+    player_talent_t refreshing_waters;
+    player_talent_t living_stream;
+    player_talent_t cloudburst_totem;
+    // Row 5
+    player_talent_t waterspeakers_blessing;
+    player_talent_t healing_tide_totem;
+    player_talent_t mana_tide_totem;
+    player_talent_t torrent;
+    // Row 6
+    player_talent_t undulation;
+    player_talent_t unleash_life;
+    player_talent_t current_control;
+    player_talent_t tide_turner;
+    player_talent_t resonant_walkers;
+    player_talent_t spiritwalkers_tidal_totem;
+    player_talent_t earthen_wall_totem;
+    player_talent_t ancestral_protection_totem;
+    player_talent_t earthliving_weapon;
+    // Row 7
+    player_talent_t ancestral_awakening;
+    player_talent_t earthen_harmony;
+    player_talent_t undercurrent;
+    // Row 8
+    player_talent_t improved_primordial_wave;
+    player_talent_t tidebringer;
+    player_talent_t downpour;
+    player_talent_t improved_earthliving_weapon;
+    // Row 9
+    player_talent_t continuous_waves;
+    player_talent_t tumbling_waves;
+    player_talent_t primal_tide_core;
+    player_talent_t high_tide;
+    player_talent_t wellspring;
   } talent;
 
   // Misc Spells
@@ -1282,6 +1337,10 @@ public:
   double maelstrom_gain;
   double maelstrom_gain_coefficient;
   bool maelstrom_gain_per_target;
+  
+  // Master of the Elements
+  proc_t* proc_moe;
+  bool affected_by_master_of_the_elements;
 
   bool affected_by_molten_weapon_da;
   bool affected_by_molten_weapon_ta;
@@ -1315,6 +1374,8 @@ public:
       maelstrom_gain( 0 ),
       maelstrom_gain_coefficient( 1.0 ),
       maelstrom_gain_per_target( true ),
+      proc_moe( nullptr ),
+      affected_by_master_of_the_elements( false ),
       affected_by_molten_weapon_da( false ),
       affected_by_molten_weapon_ta( false ),
       affected_by_crackling_surge_da( false ),
@@ -1405,6 +1466,11 @@ public:
 
   void init_finished() override
   {
+    if ( affected_by_master_of_the_elements && p()->talent.master_of_the_elements.ok() )
+    {
+      proc_moe = p()->get_proc( "Master of the Elements: " + full_name() );
+    }
+    
     ab::init_finished();
 
     // Set hasted cooldown here; Note, apply_affecting_auras cannot be used for this, since
@@ -1662,6 +1728,12 @@ public:
 
   void execute() override
   {
+    if ( affected_by_master_of_the_elements && !ab::background && p()->buff.master_of_the_elements->check() )
+    {
+      p()->buff.master_of_the_elements->decrement();
+      proc_moe->occur();
+    }
+
     ab::execute();
 
     if ( p()->specialization() == SHAMAN_ELEMENTAL )
@@ -2114,12 +2186,10 @@ struct shaman_spell_t : public shaman_spell_base_t<spell_t>
 
   bool may_proc_stormbringer = false;
   proc_t* proc_sb;
-  bool affected_by_master_of_the_elements = false;
-  proc_t* proc_moe;
 
   shaman_spell_t( util::string_view token, shaman_t* p, const spell_data_t* s = spell_data_t::nil(),
                  execute_type type_ = execute_type::NORMAL ) :
-    base_t( token, p, s, type_ ), overload( nullptr ), proc_sb( nullptr ), proc_moe( nullptr )
+    base_t( token, p, s, type_ ), overload( nullptr ), proc_sb( nullptr )
   {
 
     may_proc_stormbringer = false;
@@ -2130,11 +2200,6 @@ struct shaman_spell_t : public shaman_spell_base_t<spell_t>
     if ( may_proc_stormbringer )
     {
       proc_sb = player->get_proc( std::string( "Stormbringer: " ) + full_name() );
-    }
-
-    if ( affected_by_master_of_the_elements && p()->talent.master_of_the_elements.ok() )
-    {
-      proc_moe = p()->get_proc( "Master of the Elements: " + full_name() );
     }
 
     base_t::init_finished();
@@ -2168,18 +2233,6 @@ struct shaman_spell_t : public shaman_spell_base_t<spell_t>
     }
 
     return t;
-  }
-
-  void execute() override
-  {
-    base_t::execute();
-
-    // BfA Elemental talent - Master of the Elements
-    if ( affected_by_master_of_the_elements && !background && p()->buff.master_of_the_elements->check() )
-    {
-      p()->buff.master_of_the_elements->decrement();
-      proc_moe->occur();
-    }
   }
 
   void schedule_travel( action_state_t* s ) override
@@ -5900,10 +5953,11 @@ struct lightning_bolt_t : public shaman_spell_t
         player, player->find_class_spell( "Lightning Bolt" ), type_ )
   {
     parse_options( options_str );
+
+    affected_by_master_of_the_elements = true;
+
     if ( player->specialization() == SHAMAN_ELEMENTAL )
     {
-      affected_by_master_of_the_elements = true;
-
       maelstrom_gain = player->spec.maelstrom->effectN( 1 ).resource( RESOURCE_MAELSTROM );
       maelstrom_gain += player->talent.flow_of_power->effectN( 3 ).base_value();
     }
@@ -7861,26 +7915,71 @@ struct chain_heal_t : public shaman_heal_t
 
 // Healing Rain Spell =======================================================
 
-struct healing_rain_t : public shaman_heal_t
+struct acid_rain_t : public shaman_spell_t
 {
-  struct healing_rain_aoe_tick_t : public shaman_heal_t
+  bool mote_buffed = false;
+  
+  acid_rain_t( shaman_t* player, util::string_view options_str )
+    : shaman_spell_t( "acid_rain", player, player->find_spell( 378597 ) )
   {
-    healing_rain_aoe_tick_t( shaman_t* player )
-      : shaman_heal_t( "healing_rain_tick", player, player->find_spell( 73921 ) )
+    parse_options( options_str );
+
+    background     = true;
+    base_tick_time = timespan_t::from_millis( 1000 );
+    hasted_ticks   = false;
+    ground_aoe     = true;
+    aoe            = 6;
+  }
+  
+  double composite_persistent_multiplier( const action_state_t* state ) const override
+  {
+    double m = shaman_spell_t::composite_persistent_multiplier( state );
+
+    if ( mote_buffed )
     {
-      background = true;
-      aoe        = -1;
+      m *= 1.0 + p()->buff.master_of_the_elements->default_value;
     }
-  };
+
+    return m;
+  }
+};
+     
+struct healing_rain_t : public shaman_spell_t
+{
+  acid_rain_t* acid_rain;
 
   healing_rain_t( shaman_t* player, util::string_view options_str )
-    : shaman_heal_t( "healing_rain", player, player->find_specialization_spell( "Healing Rain" ),
-                     options_str )
+    : shaman_spell_t( "healing_rain", player, player->find_spell( 73920 ) )
   {
+    parse_options( options_str );
+
     base_tick_time = data().effectN( 2 ).period();
-    dot_duration   = data().duration();
     hasted_ticks   = false;
-    tick_action    = new healing_rain_aoe_tick_t( player );
+    ground_aoe     = true;
+    aoe            = 6;
+    affected_by_master_of_the_elements = true;
+    
+    if ( player->talent.acid_rain.ok() )
+    {
+      acid_rain = new acid_rain_t( player, options_str );
+      add_child( acid_rain );
+    }
+  }
+  
+  void execute() override
+  {
+    acid_rain->mote_buffed = p()->buff.master_of_the_elements->up();
+
+    shaman_spell_t::execute();
+    
+    make_event<ground_aoe_event_t>(
+        *sim,
+        p(),
+        ground_aoe_params_t()
+            .target( execute_state->target )
+            .duration( data().duration() )
+            .action( acid_rain ) 
+    );
   }
 };
 
@@ -9579,7 +9678,14 @@ void shaman_t::init_spells()
   talent.primordial_wave         = _ST( "Primordial Wave" );
   talent.ascendance              = _ST( "Ascendance" );
   talent.splintered_elements     = _ST( "Splintered Elements" );
+  talent.master_of_the_elements  = _ST( "Master of the Elements" );
+  talent.lava_surge              = _ST( "Lava Surge" );
+  talent.echo_of_the_elements    = _ST( "Echo of the Elements" );
+  talent.deeply_rooted_elements  = _ST( "Deeply Rooted Elements" );
 
+  talent.stormkeeper = find_talent_spell( talent_tree::SPECIALIZATION, 392714  );
+//  talent.stormkeeper = find_talent_spell( talent_tree::SPECIALIZATION, specialization() == SHAMAN_RESTORATION  ? 383009 : 392714  );
+  
   // Enhancement
   // Row 1
   talent.stormstrike = _ST( "Stormstrike" );
@@ -9642,15 +9748,12 @@ void shaman_t::init_spells()
   // Row 4
   talent.call_of_thunder    = _ST( "Call of Thunder" );
   talent.flow_of_power      = _ST( "Flow of Power" );
-  talent.lava_surge         = _ST( "Lava Surge" );
   // Row 5
   talent.unrelenting_calamity = _ST( "Unrelenting Calamity" );
   talent.icefury              = _ST( "Icefury" );
   talent.swelling_maelstrom   = _ST( "Swelling Maelstrom" );
-  talent.echo_of_the_elements = _ST( "Echo of the Elements" );
   talent.call_of_fire         = _ST( "Call of Fire" );
   // Row 6
-  talent.stormkeeper = find_talent_spell( talent_tree::SPECIALIZATION, 392714 );
   talent.electrified_shocks = _ST( "Electrified Shocks" );
   talent.flux_melting = _ST( "Flux Melting" );
   talent.aftershock = _ST( "Aftershock" );
@@ -9660,10 +9763,8 @@ void shaman_t::init_spells()
   talent.flash_of_lightning = _ST( "Flash of Lightning" );
   talent.eye_of_the_storm = _ST( "Eye of the Storm" );
   talent.power_of_the_maelstrom = _ST( "Power of the Maelstrom" );
-  talent.master_of_the_elements = _ST( "Master of the Elements" );
   talent.improved_flametongue_weapon = _ST( "Improved Flametongue Weapon" );
   // Row 8
-  talent.deeply_rooted_elements = _ST( "Deeply Rooted Elements" );
   talent.liquid_magma_totem = _ST( "Liquid Magma Totem" );
   talent.primal_elementalist = _ST( "Primal Elementalist" );
   // Row 9
@@ -9682,6 +9783,10 @@ void shaman_t::init_spells()
   talent.further_beyond = _ST( "Further Beyond" );
   talent.skybreakers_fiery_demise = _ST( "Skybreaker's Fiery Demise" );
   talent.windspeakers_lava_resurgence = _ST( "Windspeaker's Lava Resurgence" );
+  
+  // Restoration
+  talent.acid_rain = _ST( "Acid Rain" );
+  talent.healing_rain = _ST( "Healing Rain" );
 
   //
   // Misc spells
