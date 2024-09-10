@@ -637,6 +637,7 @@ public:
 
     // Mistweaver
     propagate_const<absorb_buff_t *> life_cocoon;
+    propagate_const<buff_t *> ancient_teachings;
     propagate_const<buff_t *> dance_of_chiji_mw;
     propagate_const<buff_t *> jadefire_stomp_reset;
     propagate_const<buff_t *> secret_infusion_haste;
@@ -1102,6 +1103,7 @@ public:
       player_talent_t ancient_concordance;
       const spell_data_t *ancient_concordance_buff;
       player_talent_t ancient_teachings;
+      const spell_data_t *ancient_teachings_buff;
       player_talent_t resplendent_mist;
       player_talent_t secret_infusion;
       const spell_data_t *secret_infusion_haste_buff;
