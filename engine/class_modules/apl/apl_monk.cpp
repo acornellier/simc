@@ -262,12 +262,13 @@ void mistweaver( player_t *p )
       ")" );
   def->add_action( "celestial_conduit" );
   def->add_action( "rising_sun_kick,if=talent.secret_infusion&buff.thunder_focus_tea.up" );
+  def->add_action( "celestial_conduit" );
   def->add_action( "spinning_crane_kick,if=buff.dance_of_chiji.up" );
-  def->add_action( "chi_burst,if=active_enemies>=2" );
+  def->add_action( "chi_burst,if=active_enemies>=2|talent.manifestation" );
   def->add_action( "crackling_jade_lightning,if=buff.jade_empowerment.up" );
 
   def->add_action( "jadefire_stomp,if=active_enemies>=4&active_enemies<=10" );
-  def->add_action( "spinning_crane_kick,if=active_enemies>=4" );
+  def->add_action( "spinning_crane_kick,if=active_enemies>=4&!talent.overwhelming_force|active_enemies>=6" );
 
   def->add_action( "jadefire_stomp,if=buff.jadefire_stomp.down" );
   def->add_action( "rising_sun_kick,if=active_enemies<=2" );

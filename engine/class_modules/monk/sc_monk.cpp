@@ -1179,6 +1179,44 @@ struct overwhelming_force_t : base_action_t
   }
 };
 
+template <class base_action_t>
+struct ancient_teachings_t : base_action_t
+{
+  using base_t = ancient_teachings_t<base_action_t>;
+  struct heal_t : monk_heal_t
+  {
+    heal_t( monk_t *player ) : monk_heal_t( player, "ancient_teachings", player->talent.mistweaver.ancient_teachings )
+    {
+      background = dual = proc = true;
+      base_multiplier          = player->talent.mistweaver.ancient_teachings->effectN( 1 ).percent();
+      update_flags = snapshot_flags = STATE_NO_MULTIPLIER | STATE_MUL_SPELL_DA;
+    }
+  };
+
+  heal_t *ancient_teachings_healing;
+
+  template <typename... Args>
+  ancient_teachings_t( monk_t *player, Args &&...args )
+    : base_action_t( player, std::forward<Args>( args )... ), ancient_teachings_healing( nullptr )
+  {
+    if ( !player->talent.mistweaver.ancient_teachings->ok() )
+      return;
+
+    ancient_teachings_healing = new heal_t( player );
+  }
+
+  void impact( action_state_t *state ) override
+  {
+    base_action_t::impact( state );
+
+    if ( !base_action_t::p()->buff.ancient_teachings->check() )
+      return;
+
+    ancient_teachings_healing->base_dd_min = ancient_teachings_healing->base_dd_max = state->result_amount;
+    ancient_teachings_healing->execute();
+  }
+};
+
 // ==========================================================================
 // Tiger Palm
 // ==========================================================================
@@ -1206,7 +1244,7 @@ struct tigers_ferocity_t : public monk_melee_attack_t
 };
 
 // Tiger Palm base ability ===================================================
-struct tiger_palm_t : public overwhelming_force_t<monk_melee_attack_t>
+struct tiger_palm_t : public ancient_teachings_t<overwhelming_force_t<monk_melee_attack_t>>
 {
   bool face_palm;
   action_t *tigers_ferocity;
@@ -1522,12 +1560,12 @@ struct rising_sun_kick_dmg_t : public overwhelming_force_t<monk_melee_attack_t>
   }
 };
 
-struct rising_sun_kick_t : public monk_melee_attack_t
+struct rising_sun_kick_t : public ancient_teachings_t<monk_melee_attack_t>
 {
   glory_of_the_dawn_t *gotd;
 
   rising_sun_kick_t( monk_t *p, util::string_view options_str )
-    : monk_melee_attack_t( p, "rising_sun_kick", p->talent.monk.rising_sun_kick )
+    : base_t( p, "rising_sun_kick", p->talent.monk.rising_sun_kick )
   {
     parse_options( options_str );
 
@@ -1551,7 +1589,7 @@ struct rising_sun_kick_t : public monk_melee_attack_t
 
   void execute() override
   {
-    monk_melee_attack_t::execute();
+    base_t::execute();
 
     // TODO: Is this the correct way to get character sheet haste %?
     auto gotd_chance = p()->talent.windwalker.glory_of_the_dawn->effectN( 2 ).percent() *
@@ -1573,10 +1611,10 @@ struct rising_sun_kick_t : public monk_melee_attack_t
 // ==========================================================================
 
 // Blackout Kick Proc from Teachings of the Monastery =======================
-struct blackout_kick_totm_proc_t : public monk_melee_attack_t
+struct blackout_kick_totm_proc_t : public ancient_teachings_t<overwhelming_force_t<monk_melee_attack_t>>
 {
   blackout_kick_totm_proc_t( monk_t *p )
-    : monk_melee_attack_t( p, "blackout_kick_totm_proc", p->talent.windwalker.teachings_of_the_monastery_blackout_kick )
+    : base_t( p, "blackout_kick_totm_proc", p->talent.windwalker.teachings_of_the_monastery_blackout_kick )
   {
     sef_ability        = actions::sef_ability_e::SEF_BLACKOUT_KICK_TOTM;
     ww_mastery         = false;
@@ -1587,7 +1625,7 @@ struct blackout_kick_totm_proc_t : public monk_melee_attack_t
 
   void init_finished() override
   {
-    monk_melee_attack_t::init_finished();
+    base_t::init_finished();
     action_t *bok = player->find_action( "blackout_kick" );
     if ( bok )
     {
@@ -1626,7 +1664,7 @@ struct blackout_kick_totm_proc_t : public monk_melee_attack_t
 
   void impact( action_state_t *s ) override
   {
-    monk_melee_attack_t::impact( s );
+    base_t::impact( s );
 
     if ( p()->shared.teachings_of_the_monastery->ok() )
     {
@@ -1705,7 +1743,7 @@ struct charred_passions_t : base_action_t
 };
 
 // Blackout Kick Baseline ability =======================================
-struct blackout_kick_t : overwhelming_force_t<charred_passions_t<monk_melee_attack_t>>
+struct blackout_kick_t : ancient_teachings_t<overwhelming_force_t<charred_passions_t<monk_melee_attack_t>>>
 {
   blackout_kick_totm_proc_t *bok_totm_proc;
   cooldown_t *keg_smash_cooldown;
@@ -3875,6 +3913,8 @@ struct thunder_focus_tea_t : public monk_spell_t
 
   void execute() override
   {
+    p()->buff.aspect_of_harmony.trigger_spend();
+
     monk_spell_t::execute();
 
     p()->buff.thunder_focus_tea->trigger( p()->buff.thunder_focus_tea->max_stack() );
@@ -4668,6 +4708,7 @@ struct jadefire_stomp_t : public monk_spell_t
     p()->buff.jadefire_stomp->trigger();
     p()->buff.jadefire_brand->trigger();
     p()->buff.august_dynasty->trigger();
+    p()->buff.ancient_teachings->trigger();
   }
 
   void impact( action_state_t *s ) override
@@ -5890,11 +5931,12 @@ void aspect_of_harmony_t::construct_actions( monk_t *player )
 
 void aspect_of_harmony_t::trigger( action_state_t *state )
 {
-  if ( fallback || state->result_amount <= 0.0 )
+  if ( fallback )
     return;
 
   if ( !spender->check() )
     accumulator->trigger_with_state( state );
+
   if ( spender->check() )
     spender->trigger_with_state( state );
 }
@@ -5942,6 +5984,14 @@ aspect_of_harmony_t::accumulator_t::accumulator_t( monk_t *player, aspect_of_har
 
 void aspect_of_harmony_t::accumulator_t::trigger_with_state( action_state_t *state )
 {
+  bool isHeal =
+      state->result_type == result_amount_type::HEAL_DIRECT || state->result_type == result_amount_type::HEAL_OVER_TIME;
+  bool hasUsableOverheal =
+      isHeal && ( state->result_total - state->result_amount ) > 0 && p().specialization() == MONK_MISTWEAVER;
+
+  if ( state->result_amount <= 0 && !hasUsableOverheal )
+    return;
+
   size_t result_type_offset = 0;
   switch ( state->result_type )
   {
@@ -5966,17 +6016,30 @@ void aspect_of_harmony_t::accumulator_t::trigger_with_state( action_state_t *sta
     multiplier *=
         1.0 + aspect_of_harmony->path_of_resurgence->data().effectN( result_type_offset + index_offset ).percent();
 
-  const auto whitelist = { p().baseline.brewmaster.blackout_kick->id(),
-                           p().talent.monk.rising_sun_kick->effectN( 1 ).trigger()->id(),
-                           p().baseline.monk.tiger_palm->id() };
+  const auto whitelist = {
+      p().baseline.monk.blackout_kick->id(),
+      p().baseline.brewmaster.blackout_kick->id(),
+      p().talent.windwalker.teachings_of_the_monastery_blackout_kick->id(),
+      p().talent.monk.rising_sun_kick->effectN( 1 ).trigger()->id(),
+      p().baseline.monk.tiger_palm->id(),
+  };
 
   if ( const auto &effect = p().talent.master_of_harmony.way_of_a_thousand_strikes->effectN( 1 );
        effect.ok() && std::find( whitelist.begin(), whitelist.end(), state->action->id ) != whitelist.end() )
     multiplier *= 1.0 + effect.percent();
 
-  double amount = std::min( check_value() + state->result_amount * multiplier, p().max_health() );
-  sim->print_debug( "Aspect of Harmony +A: {}, P: {}, T: {}", state->result_amount * multiplier, check_value(),
-                    check_value() + state->result_amount * multiplier );
+  double amountToAdd = state->result_amount * multiplier;
+
+  double overhealMultiplier = 0.5;
+  if ( hasUsableOverheal )
+    amountToAdd += ( state->result_total - state->result_amount ) * overhealMultiplier * multiplier;
+
+  double amount = check_value() + amountToAdd;
+
+  amount = std::min( amount, p().max_health() );
+
+  sim->print_debug( "Aspect of Harmony +A: {}, P: {}, T: {}, S: {}", amountToAdd, check_value(),
+                    check_value() + amountToAdd, state->action->name() );
   monk_buff_t::trigger( -1, amount );
 }
 
@@ -6004,6 +6067,14 @@ void aspect_of_harmony_t::spender_t::reset()
 
 bool aspect_of_harmony_t::spender_t::trigger( int stacks, double, double chance, timespan_t duration )
 {
+  if ( player->specialization() == MONK_MISTWEAVER )
+  {
+    // override the pool to its max value for mistweaver, because it is unrealistically difficult in sims to get to max
+    // value due to overhealing contributing very little to the pool
+    aspect_of_harmony->accumulator->trigger( -1, player->max_health() );
+    sim->print_debug( "Aspect of Harmony mistweaver override P: {}", aspect_of_harmony->accumulator->check_value() );
+  }
+
   pool = aspect_of_harmony->accumulator->check_value();
   aspect_of_harmony->accumulator->expire();
   sim->print_debug( "Aspect of Harmony +P: {}", pool );
@@ -6012,19 +6083,39 @@ bool aspect_of_harmony_t::spender_t::trigger( int stacks, double, double chance,
 
 void aspect_of_harmony_t::spender_t::trigger_with_state( action_state_t *state )
 {
+  if ( state->result_amount <= 0 )
+    return;
+
   double multiplier = p().talent.master_of_harmony.aspect_of_harmony->effectN( 6 ).percent();
   double amount     = std::min( state->result_amount * multiplier, current_value );
+  amount *= 50;  // TODO: remove
+
   if ( amount >= current_value )
   {
-    sim->print_debug( "Aspect of Harmony -P: {}, P: {}, T: {}", amount, current_value, current_value - amount );
-    pool = current_value;
-    expire();
-    return;
+    if ( p().specialization() == MONK_BREWMASTER )
+    {
+      sim->print_debug( "Aspect of Harmony -P: {}, P: {}, T: {}", amount, current_value, current_value - amount );
+      pool = current_value;
+      expire();
+      return;
+    }
+    else if ( p().specialization() == MONK_MISTWEAVER )
+    {
+      amount = current_value;
+    }
   }
+
   current_value -= amount;
 
-  const auto whitelist = { p().baseline.monk.expel_harm->id(), p().baseline.monk.vivify->id(),
-                           p().baseline.monk.blackout_kick->id(), p().baseline.monk.tiger_palm->id() };
+  const auto whitelist = {
+      p().baseline.monk.expel_harm->id(),
+      p().baseline.monk.vivify->id(),
+      p().baseline.monk.blackout_kick->id(),
+      p().baseline.brewmaster.blackout_kick->id(),
+      p().talent.windwalker.teachings_of_the_monastery_blackout_kick->id(),
+      p().talent.monk.rising_sun_kick->effectN( 1 ).trigger()->id(),
+      p().baseline.monk.tiger_palm->id(),
+  };
 
   auto in_hg_whitelist = [ whitelist, id = state->action->id, this ]() {
     return p().talent.master_of_harmony.harmonic_gambit->ok() &&
@@ -6040,6 +6131,15 @@ void aspect_of_harmony_t::spender_t::trigger_with_state( action_state_t *state )
         sim->print_debug( "Aspect of Harmony -P: {}, P: {}, T: {}", amount, current_value + amount, current_value );
         residual_action::trigger( aspect_of_harmony->damage, state->target, amount );
       }
+
+      // totally guessing at a 50% proc chance
+      //      if ( p().specialization() == MONK_MISTWEAVER && rng().roll( 0.5 ) )
+      //      {
+      //        double intensify_amount = state->target->debuffs;
+      //        sim->print_debug( "Aspect of Harmony INTENSIFIED -P: {}, P: {}, T: {}", intensify_amount,
+      //                          current_value + amount, current_value );
+      //      }
+
       break;
     case result_amount_type::HEAL_DIRECT:
     case result_amount_type::HEAL_OVER_TIME:
@@ -6894,6 +6994,7 @@ void monk_t::init_spells()
     talent.mistweaver.sheiluns_gift          = _ST( "Sheilun's Gift" );
     // Row 9
     talent.mistweaver.ancient_teachings            = _ST( "Ancient Teachings" );
+    talent.mistweaver.ancient_teachings_buff       = find_spell( 388026 );
     talent.mistweaver.resplendent_mist             = _ST( "Resplendent Mist" );
     talent.mistweaver.secret_infusion              = _ST( "Secret Infusion" );
     talent.mistweaver.secret_infusion_haste_buff   = find_spell( 388497 );
@@ -7600,6 +7701,9 @@ void monk_t::create_buffs()
 
   buff.jade_empowerment = make_buff_fallback( talent.mistweaver.jade_empowerment->ok(), this, "jade_empowerment",
                                               talent.mistweaver.jade_empowerment_buff );
+
+  buff.ancient_teachings = make_buff_fallback( talent.mistweaver.ancient_teachings->ok(), this, "ancient_teachings",
+                                               talent.mistweaver.ancient_teachings_buff );
 
   buff.jadefire_stomp_reset =
       make_buff_fallback( talent.mistweaver.jadefire_stomp->ok(), this, "jadefire_stomp_reset", find_spell( 388193 ) )
