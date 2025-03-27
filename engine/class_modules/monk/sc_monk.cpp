@@ -1127,7 +1127,10 @@ struct overwhelming_force_t : base_action_t
     {
       background = dual = proc = true;
       base_multiplier          = player->talent.master_of_harmony.overwhelming_force->effectN( 1 ).percent();
-      base_multiplier += player->baseline.brewmaster.aura->effectN( 32 ).percent();
+      if ( player->specialization() == MONK_BREWMASTER )
+        base_multiplier += player->baseline.brewmaster.aura->effectN( 32 ).percent();
+      else if ( player->specialization() == MONK_MISTWEAVER )
+        base_multiplier += player->baseline.mistweaver.aura_2->effectN( 14 ).percent();
       aoe                 = -1;
       reduced_aoe_targets = player->talent.master_of_harmony.overwhelming_force->effectN( 2 ).base_value();
     }
